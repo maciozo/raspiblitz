@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ $# -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "-help" ]; then
- >&2 echo "# managing the data drive(s) with old EXT4 or new BTRFS"
+ >&2 echo "# managing the data drive(s) with old F2FS or new BTRFS"
  >&2 echo "# blitz.datadrive.sh [status|tempmount|format|fstab|raid|link|swap|clean|snapshot]"
  echo "error='missing parameters'"
  exit 1
@@ -179,10 +179,10 @@ if [ "$1" = "status" ]; then
       hddFormat=$(lsblk -o FSTYPE,NAME,TYPE | grep part | grep "${hddDataPartition}" | cut -d " " -f 1)
       echo "hddFormat='${hddFormat}'"
 
-      # if 'ext4' or 'btrfs' then temp mount and investigate content
-      if [ "${hddFormat}" = "ext4" ] || [ "${hddFormat}" = "btrfs" ]; then
+      # if 'f2fs' or 'btrfs' then temp mount and investigate content
+      if [ "${hddFormat}" = "f2fs" ] || [ "${hddFormat}" = "btrfs" ]; then
 
-        # BTRFS is working with subvolumnes for snapshots / ext4 has no SubVolumes
+        # BTRFS is working with subvolumnes for snapshots / f2fs has no SubVolumes
         subVolumeDir=""
         if [ "${hddFormat}" = "btrfs" ]; then
           subVolumeDir="/WORKINGDIR"
@@ -191,7 +191,7 @@ if [ "$1" = "status" ]; then
         # temp mount data drive
         mountError=""
         sudo mkdir -p /mnt/hdd
-        if [ "${hddFormat}" = "ext4" ]; then
+        if [ "${hddFormat}" = "f2fs" ]; then
 	        hddDataPartitionExt4=$hddDataPartition
           mountError=$(sudo mount /dev/${hddDataPartitionExt4} /mnt/hdd 2>&1)
           isTempMounted=$(df | grep /mnt/hdd | grep -c ${hddDataPartitionExt4})
@@ -220,7 +220,7 @@ if [ "$1" = "status" ]; then
           sudo mount /dev/${hdd}2 /mnt/storage 2>/dev/null
           isTempMounted=$(df | grep /mnt/storage | grep -c ${hdd})
         else
-          # in ext4 setup the partition is also the storage partition
+          # in f2fs setup the partition is also the storage partition
           sudo mount /dev/${hddDataPartitionExt4} /mnt/storage 2>/dev/null
           isTempMounted=$(df | grep /mnt/storage | grep -c ${hddDataPartitionExt4})
         fi
@@ -243,7 +243,7 @@ if [ "$1" = "status" ]; then
 
           # check free space on data drive
           if [ ${isBTRFS} -eq 0 ]; then
-            # EXT4
+            # F2FS
             hdd_data_free1Kblocks=$(df -h -k /dev/${hddDataPartitionExt4} | grep "/dev/${hddDataPartitionExt4}" | sed -e's/  */ /g' | cut -d" " -f 4 | tr -dc '0-9')
           else
             # BRTS
@@ -253,26 +253,13 @@ if [ "$1" = "status" ]; then
 
           # check if its another fullnode implementation data disk
           hddGotMigrationData="none"
-          if [ "${hddFormat}" = "ext4" ]; then
-            # check for umbrel
-            isUmbrelHDD=$(sudo ls /mnt/storage/umbrel/info.json 2>/dev/null | grep -c '.json')
-            if [ ${isUmbrelHDD} -gt 0 ]; then
-              hddGotMigrationData="umbrel"
-            fi
-            isMyNodeHDD=$(sudo ls /mnt/storage/mynode/bitcoin/bitcoin.conf 2>/dev/null | grep -c '.conf')
-            if [ ${isMyNodeHDD} -gt 0 ]; then
-              hddGotMigrationData="mynode"
-            fi
-          else
-            echo "# not an ext4 drive - all known fullnode packages use ext4 at the moment"
-          fi
           echo "hddGotMigrationData='${hddGotMigrationData}'"
 
           # unmount 
           sudo umount /mnt/storage
         fi
       else
-        # if not ext4 or btrfs - there is no usable data
+        # if not f2fs or btrfs - there is no usable data
         echo "hddRaspiData=0"
         echo "hddBlocksBitcoin=0"
         echo "hddBlocksLitecoin=0"
@@ -288,12 +275,12 @@ if [ "$1" = "status" ]; then
       # on btrfs date the storage partition as the data partition
       hddDataPartition=$(df | grep "/mnt/storage$" | cut -d " " -f 1 | cut -d "/" -f 3)
     else
-      # on ext4 its the whole /mnt/hdd
+      # on f2fs its the whole /mnt/hdd
       hddDataPartition=$(df | grep "/mnt/hdd$" | cut -d " " -f 1 | cut -d "/" -f 3)
     fi
     hdd=$(echo $hddDataPartition | sed 's/[0-9]*//g')
     hddFormat=$(lsblk -o FSTYPE,NAME,TYPE | grep part | grep "${hddDataPartition}" | cut -d " " -f 1)
-    if [ "${hddFormat}" = "ext4" ]; then
+    if [ "${hddFormat}" = "f2fs" ]; then
        hddDataPartitionExt4=$hddDataPartition
     fi
     hddRaspiData=$(sudo ls -l /mnt/hdd | grep -c raspiblitz.conf)
@@ -326,7 +313,7 @@ if [ "$1" = "status" ]; then
 
     # used space - at the moment just string info to display
     if [ ${isBTRFS} -eq 0 ]; then
-      # EXT4 calculations
+      # F2FS calculations
       hdd_used_space=$(df -h | grep "/dev/${hddDataPartitionExt4}" | sed -e's/  */ /g' | cut -d" " -f 3  2>/dev/null)
       hdd_used_ratio=$(df -h | grep "/dev/${hddDataPartitionExt4}" | sed -e's/  */ /g' | cut -d" " -f 5 | tr -dc '0-9' 2>/dev/null)
       hdd_data_free1Kblocks=$(df -h -k /dev/${hddDataPartitionExt4} | grep "/dev/${hddDataPartitionExt4}" | sed -e's/  */ /g' | cut -d" " -f 4 | tr -dc '0-9')
@@ -419,7 +406,7 @@ if [ "$1" = "status" ]; then
 fi
 
 ######################
-# FORMAT EXT4 or BTRFS
+# FORMAT F2FS or BTRFS
 ######################
 
 # check basics for formating
@@ -428,10 +415,10 @@ if [ "$1" = "format" ]; then
   # check valid format
   if [ "$2" = "btrfs" ]; then
     >&2 echo "# DATA DRIVE - FORMATTING to BTRFS layout (new)"
-  elif [ "$2" = "ext4" ]; then
-    >&2 echo "# DATA DRIVE - FORMATTING to EXT4 layout (old)"
+  elif [ "$2" = "f2fs" ]; then
+    >&2 echo "# DATA DRIVE - FORMATTING to F2FS layout (old)"
   else
-    >&2 echo "# missing valid second parameter: 'btrfs' or 'ext4'"
+    >&2 echo "# missing valid second parameter: 'btrfs' or 'f2fs'"
     echo "error='missing parameter'"
     exit 1
   fi
@@ -516,7 +503,7 @@ if [ "$1" = "format" ]; then
   if [ "$2" = "btrfs" ]; then
      wipePartitions=1
   fi
-  if [ "$2" = "ext4" ] && [ $ext4IsPartition -eq 0 ]; then
+  if [ "$2" = "f2fs" ] && [ $ext4IsPartition -eq 0 ]; then
      wipePartitions=1
   fi
 
@@ -543,17 +530,17 @@ if [ "$1" = "format" ]; then
      sync
   fi
 
-  # formatting old: EXT4
+  # formatting old: F2FS
 
-  if [ "$2" = "ext4" ]; then
+  if [ "$2" = "f2fs" ]; then
 
      # prepare temp mount point
-     sudo mkdir -p /tmp/ext4 1>/dev/null
+     sudo mkdir -p /tmp/f2fs 1>/dev/null
 
      if [ $ext4IsPartition -eq 0 ]; then
-        # write new EXT4 partition
+        # write new F2FS partition
         >&2 echo "# Creating the one big partition"
-        sudo parted /dev/${hdd} mkpart primary ext4 0% 100% 1>&2
+        sudo parted /dev/${hdd} mkpart primary f2fs 0% 100% 1>&2
         sleep 6
         sync
         # loop until the partition gets available
@@ -576,19 +563,19 @@ if [ "$1" = "format" ]; then
      fi
 
      # make sure /mnt/hdd is unmounted before formatting
-     sudo umount -f /tmp/ext4 2>/dev/null
-     unmounted=$(df | grep -c "/tmp/ext4")
+     sudo umount -f /tmp/f2fs 2>/dev/null
+     unmounted=$(df | grep -c "/tmp/f2fs")
      if [ ${unmounted} -gt 0 ]; then
-       >&2 echo "# ERROR: failed to unmount /tmp/ext4"
-       echo "error='failed to unmount /tmp/ext4'"
+       >&2 echo "# ERROR: failed to unmount /tmp/f2fs"
+       echo "error='failed to unmount /tmp/f2fs'"
        exit 1
      fi
 
      >&2 echo "# Formatting"
      if [ $ext4IsPartition -eq 0 ]; then
-        sudo mkfs.ext4 -F -L BLOCKCHAIN /dev/${hdd}1 1>/dev/null
+        sudo mkfs.f2fs -f -l BLOCKCHAIN /dev/${hdd}1 1>/dev/null
      else
-        sudo mkfs.ext4 -F -L BLOCKCHAIN /dev/${hdd} 1>/dev/null
+        sudo mkfs.f2fs -f -l BLOCKCHAIN /dev/${hdd} 1>/dev/null
      fi
      loopdone=0
      loopcount=0
@@ -600,21 +587,13 @@ if [ "$1" = "format" ]; then
        loopdone=$(lsblk -o NAME,LABEL | grep -c BLOCKCHAIN)
        loopcount=$(($loopcount +1))
        if [ ${loopcount} -gt 10 ]; then
-         >&2 echo "# ERROR: formatting ext4 failed"
-         echo "error='formatting ext4 failed'"
+         >&2 echo "# ERROR: formatting f2fs failed"
+         echo "error='formatting f2fs failed'"
          exit 1
        fi
      done
 
-     # setting fsk check intervall to 1
-     # see https://github.com/rootzoll/raspiblitz/issues/360#issuecomment-467567572
-     if [ $ext4IsPartition -eq 0 ]; then
-        sudo tune2fs -c 1 /dev/${hdd}1
-     else
-        sudo tune2fs -c 1 /dev/${hdd}
-     fi
-
-     >&2 echo "# OK EXT 4 format done"
+     >&2 echo "# OK F2FS format done"
      exit 0
   fi
 
@@ -752,9 +731,9 @@ if [ "$1" = "fstab" ]; then
   fi
 
   # check if exist and which format
-  # if hdd is a partition (ext4)
+  # if hdd is a partition (f2fs)
   if [[ $hdd =~ [0-9] ]]; then
-     # ext4
+     # f2fs
      hddFormat=$(lsblk -o FSTYPE,NAME | grep ${hdd} | cut -d ' ' -f 1)
   else
      # btrfs
@@ -775,9 +754,9 @@ if [ "$1" = "fstab" ]; then
     sudo umount /mnt/temp > /dev/null 2>&1
   fi
 
-  if [ "${hddFormat}" = "ext4" ]; then
+  if [ "${hddFormat}" = "f2fs" ]; then
 
-    ### EXT4 ###
+    ### F2FS ###
 
     hddDataPartitionExt4=$hdd
     # loop until the uuids are available
@@ -802,7 +781,7 @@ if [ "$1" = "fstab" ]; then
     updated=$(cat /etc/fstab | grep -c "/mnt/hdd")
     if [ $updated -eq 0 ]; then
        echo "# updating /etc/fstab"
-       sudo sed "/raspiblitz/ i UUID=${uuid1} /mnt/hdd ext4 noexec,defaults 0 2" -i /etc/fstab 1>/dev/null
+       sudo sed "/raspiblitz/ i UUID=${uuid1} /mnt/hdd f2fs noexec,defaults 0 2" -i /etc/fstab 1>/dev/null
     fi
 
     sync
@@ -825,7 +804,7 @@ if [ "$1" = "fstab" ]; then
       fi
     done
 
-    echo "# OK - fstab updated for EXT4 layout"
+    echo "# OK - fstab updated for F2FS layout"
     exit 1
 
   elif [ "${hddFormat}" = "btrfs" ]; then
@@ -1204,14 +1183,14 @@ if [ "$1" = "tempmount" ]; then
     exit 1
   fi
 
-  if [ "${hddFormat}" = "ext4" ]; then
+  if [ "${hddFormat}" = "f2fs" ]; then
 
     if [ "${hddDataPartitionExt4}" == "" ]; then
       echo "error='parameter is no partition'"
       exit 1
     fi
 
-    # do EXT4 temp mount
+    # do F2FS temp mount
     echo "# temp mount /dev/${hddDataPartitionExt4} --> /mnt/hdd"
     sudo mkdir -p /mnt/hdd 1>/dev/null
     sudo mount /dev/${hddDataPartitionExt4} /mnt/hdd
@@ -1338,7 +1317,7 @@ if [ "$1" = "link" ]; then
     sudo mkdir -p /mnt/storage/snapshots
 
   else
-    >&2 echo "# Creating EXT4 setup links"
+    >&2 echo "# Creating F2FS setup links"
 
     >&2 echo "# opening blockchain into /mnt/hdd"
     sudo mkdir -p /mnt/hdd/bitcoin
@@ -1423,7 +1402,7 @@ if [ "$1" = "swap" ]; then
     
     else
 
-      >&2 echo "# Rewrite external SWAP config for EXT4 setup"
+      >&2 echo "# Rewrite external SWAP config for F2FS setup"
       sudo sed -i "12s/.*/CONF_SWAPFILE=\/mnt\/hdd\/swapfile/" /etc/dphys-swapfile
       sudo sed -i "16s/.*/#CONF_SWAPSIZE=/" /etc/dphys-swapfile
 
@@ -1531,7 +1510,7 @@ if [ "$1" = "clean" ]; then
           if [ "${entry}" = "bitcoin" ] || [ "${entry}" = "litecoin" ]; then
             whenDeleteSchredd=0
           fi
-          # if BTRFS just shred stuff in /mnt/hdd/temp (because thats EXT4)
+          # if BTRFS just shred stuff in /mnt/hdd/temp (because thats F2FS)
           if [ ${isBTRFS} -eq 1 ] && [ "${entry}" != "temp" ]; then
             whenDeleteSchredd=0
           fi
@@ -1617,7 +1596,7 @@ if [ "$1" = "clean" ]; then
     # here is no secure delete needed - because not sensitive data
     >&2 echo "# Deleting all Blockchain Data (blocks/chainstate) from storage .."
 
-    # set path based on EXT4/BTRFS
+    # set path based on F2FS/BTRFS
     basePath="/mnt/hdd"
     if [ ${isBTRFS} -eq 1 ]; then
       basePath="/mnt/storage"

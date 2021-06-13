@@ -58,7 +58,7 @@ fi
 # If this parameter is set also the branch needs to be given (see next parameter).
 githubUser="$3"
 if [ ${#githubUser} -eq 0 ]; then
-  githubUser="rootzoll"
+  githubUser="maciozo"
 fi
 echo "3) will use GITHUB-USERNAME --> '${githubUser}'"
 
@@ -67,7 +67,7 @@ echo "3) will use GITHUB-USERNAME --> '${githubUser}'"
 # could be any valid branch of the given GITHUB-USERNAME forked raspiblitz repo - 'dev' is default
 githubBranch="$4"
 if [ ${#githubBranch} -eq 0 ]; then
-  githubBranch="dev"
+  githubBranch="v1.7-f2fs"
 fi
 echo "4) will use GITHUB-BRANCH --> '${githubBranch}'"
 
@@ -78,7 +78,7 @@ echo "4) will use GITHUB-BRANCH --> '${githubBranch}'"
 # https://github.com/rootzoll/raspiblitz/issues/1265#issuecomment-813369284
 displayClass="$5"
 if [ ${#displayClass} -eq 0 ] || [ "${displayClass}" == "false" ]; then
-  displayClass="hdmi"
+  displayClass="headless"
 fi
 if [ "${displayClass}" != "hdmi" ] && [ "${displayClass}" != "lcd" ] && [ "${displayClass}" != "headless" ]; then
   echo "ERROR: DISPLAY-CLASS parameter needs to be 'lcd', 'hdmi' or 'headless'"
@@ -94,7 +94,7 @@ fi
 # If 'false' this will skipped.
 tweakBootdrives="$6"
 if [ ${#tweakBootdrives} -eq 0 ]; then
-  tweakBootdrives="true"
+  tweakBootdrives="false"
 fi
 if [ "${tweakBootdrives}" != "true" ] && [ "${tweakBootdrives}" != "false" ]; then
   echo "ERROR: TWEAK-BOOTDRIVE parameter needs to be either 'true' or 'false'"
@@ -111,7 +111,7 @@ fi
 # If any valid wifi country code Wifi will be activated with that country code by default
 modeWifi="$7"
 if [ ${#modeWifi} -eq 0 ] || [ "${modeWifi}" == "true" ]; then
-  modeWifi="US"
+  modeWifi="GB"
 fi
 echo "7) will use WIFI --> '${modeWifi}'"
 
@@ -182,6 +182,11 @@ fi
 echo "Building RaspiBlitz ..."
 echo ""
 sleep 3
+
+# INSTALL TOR
+echo "*** INSTALL F2FS-TOOLS ***"
+echo ""
+sudo apt install -y f2fs-tools
 
 # INSTALL TOR
 echo "*** INSTALL TOR BY DEFAULT ***"
