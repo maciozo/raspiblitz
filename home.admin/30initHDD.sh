@@ -74,7 +74,7 @@ echo "# raidCandidates=${raidCandidates}"
 echo "# raidSizeGB=${raidSizeGB}"
 if [ "${hddGotBlockchain}" == "" ] || [ ${hddGotBlockchain}  -eq 0 ]; then
 
-  format="ext4"
+  format="f2fs"
 
   # test feature: if there is a USB stick as a raid connected, then format in BTRFS an not in EXT4
   if [ ${raidCandidates} -eq 1 ] && [ ${raidSizeGB} -gt 14 ]; then
