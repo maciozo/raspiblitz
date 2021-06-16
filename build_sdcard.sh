@@ -333,26 +333,6 @@ if [ "${baseimage}" = "raspbian" ]||[ "${baseimage}" = "raspios_arm64" ]||\
   else
     echo "* skipping tweakBootdrives"
   fi
-
-  # edit kernel parameters
-  kernelOptionsFile=/boot/cmdline.txt
-  fsOption1="fsck.mode=force"
-  fsOption2="fsck.repair=yes"
-  fsOption1InFile=$(grep -c ${fsOption1} ${kernelOptionsFile})
-  fsOption2InFile=$(grep -c ${fsOption2} ${kernelOptionsFile})
-
-  if [ ${fsOption1InFile} -eq 0 ]; then
-    sudo sed -i "s/^/$fsOption1 /g" "$kernelOptionsFile"
-    echo "$fsOption1 added to $kernelOptionsFile"
-  else
-    echo "$fsOption1 already in $kernelOptionsFile"
-  fi
-  if [ ${fsOption2InFile} -eq 0 ]; then
-    sudo sed -i "s/^/$fsOption2 /g" "$kernelOptionsFile"
-    echo "$fsOption2 added to $kernelOptionsFile"
-  else
-    echo "$fsOption2 already in $kernelOptionsFile"
-  fi
 fi
 
 # special prepare when Nvidia Jetson Nano
